@@ -14,6 +14,10 @@ const state = {
     predictIrises: true,
 };
 
+function distance(a, b) {
+    return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2));
+}
+
 async function getPredictions() {
     return model.estimateFaces({
         input: document.querySelector('video'),
@@ -64,7 +68,6 @@ async function setUp() {
 }
 
 
-
 async function main() {
     console.log('loading camera and model...')
     model = await setUp()
@@ -82,12 +85,16 @@ async function main() {
                 s.background('rgba(255,255,255,0.15)');
                 getPredictions().then((prediction) => {
                     let annotations = prediction[0]['annotations']
-                    let left = annotations['leftEyeIris']
-                    let right = annotations['rightEyeIris']
-                    left.forEach((point) => {
+                    let leftPoints = annotations['leftEyeIris']
+                    let rightPoints = annotations['rightEyeIris']
+
+
+                    leftPoints.forEach((point, index) => {
                         s.drawPoint(VIDEO_SIZE - point[0], point[1], point[2], 'green')
+
                     })
-                    right.forEach((point) => {
+
+                    rightPoints.forEach((point) => {
                         s.drawPoint(VIDEO_SIZE - point[0], point[1], point[2], 'red')
                     })
                 })
@@ -99,12 +106,30 @@ async function main() {
             console.log(e.screenX, e.screenY)
         }
 
+        s.outlineIris = (points) => {
+            const diameterX = distance(
+                points[3],
+                points[1]
+            );
+            const diameterY = distance(
+                points[2],
+                points[4]
+            );
+            s.noFill()
+            s.ellipse(VIDEO_SIZE - points[0][0], points[0][1], diameterX / 2, diameterY / 2)
+        }
+
         s.drawPoint = (x, y, z, color) => {
             let new_z = -(z / 1.5) * 255
             if (color === 'green') {
                 s.fill(0, 250, 0, new_z)
-            } else {
+            } else if (color === 'blue') {
+                s.fill(0, 0, 250, new_z)
+            } else if (color === 'red') {
                 s.fill(250, 0, 0, new_z)
+            } else {
+                console.log(`${color} is not a supported color. Using green.`)
+                s.fill(0, 250, 0, new_z)
             }
 
             s.circle(x, y, 10)
@@ -118,7 +143,7 @@ async function main() {
 
     };
 
-    const sketchInstance = new p5(sketch);
+    new p5(sketch);
 
 }
 
