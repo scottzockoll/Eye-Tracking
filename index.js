@@ -1,5 +1,5 @@
-import * as faceLandmarksDetection from '@tensorflow-models/face-landmarks-detection';
-import * as tf from '@tensorflow/tfjs-core';
+import {load, SupportedPackages} from '@tensorflow-models/face-landmarks-detection';
+import {setBackend} from '@tensorflow/tfjs-core';
 import '@tensorflow/tfjs-backend-webgl';
 // import '@tensorflow/tfjs-backend-cpu';
 import p5 from 'p5';
@@ -37,7 +37,7 @@ async function setupCamera() {
 }
 
 async function main() {
-    await tf.setBackend(state.backend);
+    await setBackend(state.backend);
 
     await setupCamera();
     video.play();
@@ -46,8 +46,8 @@ async function main() {
     video.width = videoWidth;
     video.height = videoHeight;
 
-    model = await faceLandmarksDetection.load(
-        faceLandmarksDetection.SupportedPackages.mediapipeFacemesh,
+    model = await load(
+        SupportedPackages.mediapipeFacemesh,
         {maxFaces: state.maxFaces});
 
     console.log('model loaded')

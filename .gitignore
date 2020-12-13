@@ -1,0 +1,7 @@
+.cache
+.idea
+dist
+dist/*
+node_modules/
+.log
+
