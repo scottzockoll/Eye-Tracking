@@ -67,6 +67,9 @@ async function setUp() {
 
 }
 
+let training = false
+let X = []
+let y = []
 
 async function main() {
     console.log('loading camera and model...')
@@ -75,28 +78,30 @@ async function main() {
     const sketch = (s) => {
 
         s.setup = () => {
-            let canvas = s.createCanvas(VIDEO_SIZE, VIDEO_SIZE);
-            canvas.parent('main');
+            let canvas = s.createCanvas(s.windowWidth, s.windowHeight);
+            canvas.parent('p5jsdiv');
 
         };
 
         if (running) {
             s.draw = () => {
-                s.background('rgba(255,255,255,0.15)');
+                s.background(0);
                 getPredictions().then((prediction) => {
                     let annotations = prediction[0]['annotations']
                     let leftPoints = annotations['leftEyeIris']
                     let rightPoints = annotations['rightEyeIris']
 
-
-                    leftPoints.forEach((point, index) => {
-                        s.drawPoint(VIDEO_SIZE - point[0], point[1], point[2], 'green')
-
-                    })
-
-                    rightPoints.forEach((point) => {
-                        s.drawPoint(VIDEO_SIZE - point[0], point[1], point[2], 'red')
-                    })
+                    if (training) {
+                        let dataX = []
+                        leftPoints.forEach((point) => {
+                            dataX.push(...point)
+                        })
+                        rightPoints.forEach((point) => {
+                            dataX.push(...point)
+                        })
+                        X.push(dataX)
+                        y.push([s.mouseX, s.mouseY])
+                    }
                 })
             }
         }
@@ -136,8 +141,14 @@ async function main() {
         }
 
         s.keyPressed = (e) => {
-            if (e.key === 'z') {
-                console.log('z pressed')
+            if (e.key === 't') {
+                if (training) {
+                    training = false
+                    console.log('training stopped')
+                } else {
+                    training = true
+                    console.log('training started')
+                }
             }
         }
 
