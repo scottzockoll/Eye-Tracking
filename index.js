@@ -14,6 +14,12 @@ const state = {
     predictIrises: true,
 };
 
+async function getPredictions() {
+    return model.estimateFaces({
+        input: document.querySelector('video'),
+    });
+}
+
 async function setupCamera() {
     video = document.getElementById('video');
 
@@ -24,10 +30,8 @@ async function setupCamera() {
             width: VIDEO_SIZE,
             height: VIDEO_SIZE,
         },
-    }).then((stream) => {
-        console.log('video loaded')
-        video.srcObject = stream
-    });
+    })
+    video.srcObject = stream
 
     return new Promise((resolve) => {
         video.onloadedmetadata = () => {
@@ -36,7 +40,7 @@ async function setupCamera() {
     });
 }
 
-async function main() {
+async function setUp() {
     await setBackend(state.backend);
 
     await setupCamera();
@@ -45,70 +49,83 @@ async function main() {
     videoHeight = video.videoHeight;
     video.width = videoWidth;
     video.height = videoHeight;
+    console.log('camera loaded')
 
     model = await load(
         SupportedPackages.mediapipeFacemesh,
         {maxFaces: state.maxFaces});
 
-    console.log('model loaded')
+    getPredictions().then(() => {
+        console.log('Model loaded')
+    })
 
-    return model;
+    return model
+
 }
 
-model = main();
 
-async function getPredictions() {
-    return model.estimateFaces({
-        input: document.querySelector('video'),
-    });
-}
 
-const sketch = (s) => {
+async function main() {
+    console.log('loading camera and model...')
+    model = await setUp()
 
-    s.setup = () => {
-        let canvas = s.createCanvas(VIDEO_SIZE, VIDEO_SIZE);
-        canvas.parent('main');
+    const sketch = (s) => {
+
+        s.setup = () => {
+            let canvas = s.createCanvas(VIDEO_SIZE, VIDEO_SIZE);
+            canvas.parent('main');
+
+        };
+
+        if (running) {
+            s.draw = () => {
+                s.background('rgba(255,255,255,0.15)');
+                getPredictions().then((prediction) => {
+                    let annotations = prediction[0]['annotations']
+                    let left = annotations['leftEyeIris']
+                    let right = annotations['rightEyeIris']
+                    left.forEach((point) => {
+                        s.drawPoint(VIDEO_SIZE - point[0], point[1], point[2], 'green')
+                    })
+                    right.forEach((point) => {
+                        s.drawPoint(VIDEO_SIZE - point[0], point[1], point[2], 'red')
+                    })
+                })
+            }
+        }
+
+
+        s.mouseClicked = (e) => {
+            console.log(e.screenX, e.screenY)
+        }
+
+        s.drawPoint = (x, y, z, color) => {
+            let new_z = -(z / 1.5) * 255
+            if (color === 'green') {
+                s.fill(0, 250, 0, new_z)
+            } else {
+                s.fill(250, 0, 0, new_z)
+            }
+
+            s.circle(x, y, 10)
+        }
+
+        s.keyPressed = (e) => {
+            if (e.key === 'z') {
+                console.log('z pressed')
+            }
+        }
 
     };
 
-    s.draw = () => {
-        s.background('rgba(255,255,255,0.15)');
-        getPredictions().then((prediction) => {
-            let annotations = prediction[0]['annotations']
-            let left = annotations['leftEyeIris']
-            let right = annotations['rightEyeIris']
-            left.forEach((point) => {
-                s.drawPoint(VIDEO_SIZE - point[0], point[1], point[2], 'green')
-            })
-            right.forEach((point) => {
-                s.drawPoint(VIDEO_SIZE - point[0], point[1], point[2], 'red')
-            })
-        })
-    }
+    const sketchInstance = new p5(sketch);
 
-    s.mouseClicked = (e) => {
-        console.log(e.screenX, e.screenY)
-    }
+}
 
-    s.drawPoint = (x, y, z, color) => {
-        let new_z = -(z / 1.5) * 255
-        if (color === 'green') {
-            s.fill(0, 250, 0, new_z)
-        } else {
-            s.fill(250, 0, 0, new_z)
-        }
+const running = true
+main()
 
-        s.circle(x, y, 10)
-    }
 
-    s.keyPressed = (e) => {
-        if (e.key === 'z') {
-            console.log('z pressed')
-        }
-    }
 
-};
-
-const sketchInstance = new p5(sketch);
 
 
