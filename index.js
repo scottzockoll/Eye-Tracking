@@ -25,9 +25,7 @@ async function getPredictions() {
 }
 
 async function getNeuralNetworkPredictions(x) {
-    console.log('getting prediction from neural network')
     x = tf.tensor2d(x, [1, 30])
-    console.log(typeof x)
     x.print()
     return neuralNetwork.predict(x)
 }
@@ -77,13 +75,18 @@ async function setUp() {
 
 let training = false
 let predicting = false
+let guiding = false
+let guideX = 0
+let guideY = 0
+let guideSign = 1
+let guideWidth = 50
 let X = []
 let y = []
 const EPOCHS = 50;
 
 function train(model, X, y) {
     console.log('training neural network')
-    model.fit(tf.tensor2d(X, [X.length, 30]), tf.tensor2d(y,[y.length, 2]), {
+    model.fit(tf.tensor2d(X, [X.length, 30]), tf.tensor2d(y, [y.length, 2]), {
         epochs: EPOCHS
     }).then(() => {
         console.log('neural network trained')
@@ -100,16 +103,38 @@ async function main() {
         s.setup = () => {
             let canvas = s.createCanvas(s.windowWidth, s.windowHeight);
             canvas.parent('p5jsdiv');
-
         };
 
         if (running) {
             s.draw = () => {
-                // s.background(0);
+                if (guiding) {
+                    s.background(255)
+                    if (((guideSign > 0) && (guideX >= s.windowWidth-guideWidth)) || ((guideSign < 0) && (guideX <= 0))) {
+                        guideY = guideY + 50
+                        guideSign = guideSign > 0 ? -1 : 1
+                    } else {
+                        guideX = guideX + (20 * guideSign)
+                    }
+                    s.translate(guideX, guideY);
+                    s.fill(0);
+                    s.rect(0, 0, guideWidth, guideWidth);
+                }
                 getPredictions().then((prediction) => {
                     let annotations = prediction[0]['annotations']
                     let leftPoints = annotations['leftEyeIris']
                     let rightPoints = annotations['rightEyeIris']
+
+                    if (guiding) {
+                        let dataX = []
+                        leftPoints.forEach((point) => {
+                            dataX.push(...point)
+                        })
+                        rightPoints.forEach((point) => {
+                            dataX.push(...point)
+                        })
+                        X.push(dataX)
+                        y.push([guideX, guideY])
+                    }
 
                     if (training) {
                         let dataX = []
@@ -123,6 +148,7 @@ async function main() {
                         y.push([s.mouseX, s.mouseY])
                     }
                     if (predicting) {
+                        s.background('rgba(255,255,255,0.15)');
                         let dataX = []
                         leftPoints.forEach((point) => {
                             dataX.push(...point)
@@ -132,11 +158,9 @@ async function main() {
                         })
                         getNeuralNetworkPredictions(dataX).then((x_y) => {
                             x_y.array().then((array) => {
-                                console.log(`array: ${array}`)
+                                console.log(array)
                                 let x_prediction = array[0][0]
                                 let y_prediction = array[0][1]
-                                console.log(`x_prediction: ${x_prediction}`)
-                                console.log(`y_prediction: ${y_prediction}`)
                                 s.drawPoint(x_prediction, y_prediction, 'green')
                             })
                         })
@@ -165,7 +189,6 @@ async function main() {
 
         s.drawPoint = (x, y, color) => {
             // let new_z = -(z / 1.5) * 255
-            console.log('drawing point')
             if (color === 'green') {
                 s.fill(0, 250, 0)
             } else if (color === 'blue') {
@@ -202,6 +225,14 @@ async function main() {
                     predicting = true
                     console.log('prediction started')
 
+                }
+            } else if (e.key === 'g') {
+                if (guiding) {
+                    guiding = false
+                    console.log('guiding stopped')
+                } else {
+                    guiding = true
+                    console.log('guiding started')
                 }
             }
         }
