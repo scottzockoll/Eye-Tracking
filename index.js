@@ -1,10 +1,10 @@
 import {load, SupportedPackages} from '@tensorflow-models/face-landmarks-detection';
-import {setBackend} from '@tensorflow/tfjs-core';
-import '@tensorflow/tfjs-backend-webgl';
-// import '@tensorflow/tfjs-backend-cpu';
 import p5 from 'p5';
+import * as tf from '@tensorflow/tfjs'
+import {buildModel} from './neuralNetwork'
 
 let model, videoWidth, videoHeight, video, canvas;
+let neuralNetwork = buildModel()
 
 const VIDEO_SIZE = 500;
 const state = {
@@ -22,6 +22,14 @@ async function getPredictions() {
     return model.estimateFaces({
         input: document.querySelector('video'),
     });
+}
+
+async function getNeuralNetworkPredictions(x) {
+    console.log('getting prediction from neural network')
+    x = tf.tensor2d(x, [1, 30])
+    console.log(typeof x)
+    x.print()
+    return neuralNetwork.predict(x)
 }
 
 async function setupCamera() {
@@ -45,7 +53,7 @@ async function setupCamera() {
 }
 
 async function setUp() {
-    await setBackend(state.backend);
+    await tf.setBackend(state.backend)
 
     await setupCamera();
     video.play();
@@ -68,8 +76,20 @@ async function setUp() {
 }
 
 let training = false
+let predicting = false
 let X = []
 let y = []
+const EPOCHS = 50;
+
+function train(model, X, y) {
+    console.log('training neural network')
+    model.fit(tf.tensor2d(X, [X.length, 30]), tf.tensor2d(y,[y.length, 2]), {
+        epochs: EPOCHS
+    }).then(() => {
+        console.log('neural network trained')
+    });
+    return model
+}
 
 async function main() {
     console.log('loading camera and model...')
@@ -85,7 +105,7 @@ async function main() {
 
         if (running) {
             s.draw = () => {
-                s.background(0);
+                // s.background(0);
                 getPredictions().then((prediction) => {
                     let annotations = prediction[0]['annotations']
                     let leftPoints = annotations['leftEyeIris']
@@ -101,6 +121,25 @@ async function main() {
                         })
                         X.push(dataX)
                         y.push([s.mouseX, s.mouseY])
+                    }
+                    if (predicting) {
+                        let dataX = []
+                        leftPoints.forEach((point) => {
+                            dataX.push(...point)
+                        })
+                        rightPoints.forEach((point) => {
+                            dataX.push(...point)
+                        })
+                        getNeuralNetworkPredictions(dataX).then((x_y) => {
+                            x_y.array().then((array) => {
+                                console.log(`array: ${array}`)
+                                let x_prediction = array[0][0]
+                                let y_prediction = array[0][1]
+                                console.log(`x_prediction: ${x_prediction}`)
+                                console.log(`y_prediction: ${y_prediction}`)
+                                s.drawPoint(x_prediction, y_prediction, 'green')
+                            })
+                        })
                     }
                 })
             }
@@ -124,17 +163,18 @@ async function main() {
             s.ellipse(VIDEO_SIZE - points[0][0], points[0][1], diameterX / 2, diameterY / 2)
         }
 
-        s.drawPoint = (x, y, z, color) => {
-            let new_z = -(z / 1.5) * 255
+        s.drawPoint = (x, y, color) => {
+            // let new_z = -(z / 1.5) * 255
+            console.log('drawing point')
             if (color === 'green') {
-                s.fill(0, 250, 0, new_z)
+                s.fill(0, 250, 0)
             } else if (color === 'blue') {
-                s.fill(0, 0, 250, new_z)
+                s.fill(0, 0, 250)
             } else if (color === 'red') {
-                s.fill(250, 0, 0, new_z)
+                s.fill(250, 0, 0)
             } else {
                 console.log(`${color} is not a supported color. Using green.`)
-                s.fill(0, 250, 0, new_z)
+                s.fill(0, 250, 0)
             }
 
             s.circle(x, y, 10)
@@ -148,6 +188,20 @@ async function main() {
                 } else {
                     training = true
                     console.log('training started')
+                }
+            } else if (e.key === 'd') {
+                console.log(X)
+                console.log(y)
+            } else if (e.key === 'n') {
+                neuralNetwork = train(neuralNetwork, X, y)
+            } else if (e.key === 'p') {
+                if (predicting) {
+                    predicting = false
+                    console.log('predicting stopped')
+                } else {
+                    predicting = true
+                    console.log('prediction started')
+
                 }
             }
         }
