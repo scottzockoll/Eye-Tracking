@@ -120,17 +120,52 @@ async function main() {
                     s.rect(0, 0, guideWidth, guideWidth);
                 }
                 getPredictions().then((prediction) => {
+
+                    // start paste
                     let annotations = prediction[0]['annotations']
                     let leftPoints = annotations['leftEyeIris']
                     let rightPoints = annotations['rightEyeIris']
+                    let leftCenter = leftPoints[0]
+                    let rightCenter = rightPoints[0]
+
+                    let xCompOfLeftCenterDot = VIDEO_SIZE - leftCenter[0]
+                    let yCompOfLeftCenterDot = leftCenter[1]
+                    let xOfLockedLeftCenterDot = xCompOfLeftCenterDot - (xCompOfLeftCenterDot - 100)
+                    let yOfLockedLeftCenterDot = yCompOfLeftCenterDot - (yCompOfLeftCenterDot - 100)
+
+                    let xCompOfRightCenterDot = VIDEO_SIZE - rightCenter[0]
+                    let yCompOfRightCenterDot = rightCenter[1]
+                    let xOfLockedRightCenterDot = xCompOfRightCenterDot - (xCompOfRightCenterDot - 150)
+                    let yOfLockedRightCenterDot = yCompOfRightCenterDot - (yCompOfRightCenterDot - 100)
+
+                    // end paste
 
                     if (guiding) {
                         let dataX = []
-                        leftPoints.forEach((point) => {
-                            dataX.push(...point)
+                        leftPoints.forEach((point, index) => {
+                            // plot unlocked dot
+
+                            // plot locked dot
+                            let xCompOfDot = VIDEO_SIZE - point[0]
+                            let yCompOfDot = point[1]
+                            let normalizedX = (xCompOfDot - (xCompOfDot - xOfLockedLeftCenterDot)) + (xCompOfDot - xCompOfLeftCenterDot)
+                            let normalizedY = (yCompOfDot - (yCompOfDot - yOfLockedLeftCenterDot)) + (yCompOfDot - yCompOfLeftCenterDot)
+                            dataX.push(normalizedX)
+                            dataX.push(normalizedY)
+                            dataX.push(point[2])
+
                         })
-                        rightPoints.forEach((point) => {
-                            dataX.push(...point)
+
+                        rightPoints.forEach((point, index) => {
+
+                            // plot locked dot
+                            let xCompOfDot = VIDEO_SIZE - point[0]
+                            let yCompOfDot = point[1]
+                            let normalizedX = (xCompOfDot - (xCompOfDot - xOfLockedRightCenterDot)) + (xCompOfDot - xCompOfRightCenterDot)
+                            let normalizedY = (yCompOfDot - (yCompOfDot - yOfLockedRightCenterDot)) + (yCompOfDot - yCompOfRightCenterDot)
+                            dataX.push(normalizedX)
+                            dataX.push(normalizedY)
+                            dataX.push(point[2])
                         })
                         X.push(dataX)
                         y.push([guideX, guideY])
@@ -138,11 +173,30 @@ async function main() {
 
                     if (training) {
                         let dataX = []
-                        leftPoints.forEach((point) => {
-                            dataX.push(...point)
+                        leftPoints.forEach((point, index) => {
+                            // plot unlocked dot
+
+                            // plot locked dot
+                            let xCompOfDot = VIDEO_SIZE - point[0]
+                            let yCompOfDot = point[1]
+                            let normalizedX = (xCompOfDot - (xCompOfDot - xOfLockedLeftCenterDot)) + (xCompOfDot - xCompOfLeftCenterDot)
+                            let normalizedY = (yCompOfDot - (yCompOfDot - yOfLockedLeftCenterDot)) + (yCompOfDot - yCompOfLeftCenterDot)
+                            dataX.push(normalizedX)
+                            dataX.push(normalizedY)
+                            dataX.push(point[2])
+
                         })
-                        rightPoints.forEach((point) => {
-                            dataX.push(...point)
+
+                        rightPoints.forEach((point, index) => {
+
+                            // plot locked dot
+                            let xCompOfDot = VIDEO_SIZE - point[0]
+                            let yCompOfDot = point[1]
+                            let normalizedX = (xCompOfDot - (xCompOfDot - xOfLockedRightCenterDot)) + (xCompOfDot - xCompOfRightCenterDot)
+                            let normalizedY = (yCompOfDot - (yCompOfDot - yOfLockedRightCenterDot)) + (yCompOfDot - yCompOfRightCenterDot)
+                            dataX.push(normalizedX)
+                            dataX.push(normalizedY)
+                            dataX.push(point[2])
                         })
                         X.push(dataX)
                         y.push([s.mouseX, s.mouseY])
@@ -150,11 +204,30 @@ async function main() {
                     if (predicting) {
                         s.background('rgba(255,255,255,0.15)');
                         let dataX = []
-                        leftPoints.forEach((point) => {
-                            dataX.push(...point)
+                        leftPoints.forEach((point, index) => {
+                            // plot unlocked dot
+
+                            // plot locked dot
+                            let xCompOfDot = VIDEO_SIZE - point[0]
+                            let yCompOfDot = point[1]
+                            let normalizedX = (xCompOfDot - (xCompOfDot - xOfLockedLeftCenterDot)) + (xCompOfDot - xCompOfLeftCenterDot)
+                            let normalizedY = (yCompOfDot - (yCompOfDot - yOfLockedLeftCenterDot)) + (yCompOfDot - yCompOfLeftCenterDot)
+                            dataX.push(normalizedX)
+                            dataX.push(normalizedY)
+                            dataX.push(point[2])
+
                         })
-                        rightPoints.forEach((point) => {
-                            dataX.push(...point)
+
+                        rightPoints.forEach((point, index) => {
+
+                            // plot locked dot
+                            let xCompOfDot = VIDEO_SIZE - point[0]
+                            let yCompOfDot = point[1]
+                            let normalizedX = (xCompOfDot - (xCompOfDot - xOfLockedRightCenterDot)) + (xCompOfDot - xCompOfRightCenterDot)
+                            let normalizedY = (yCompOfDot - (yCompOfDot - yOfLockedRightCenterDot)) + (yCompOfDot - yCompOfRightCenterDot)
+                            dataX.push(normalizedX)
+                            dataX.push(normalizedY)
+                            dataX.push(point[2])
                         })
                         getNeuralNetworkPredictions(dataX).then((x_y) => {
                             x_y.array().then((array) => {
